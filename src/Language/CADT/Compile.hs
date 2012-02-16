@@ -5,20 +5,16 @@ import Data.List
 import Text.PrettyPrint.Leijen
 import Text.ParserCombinators.Parsec
 
-test = putStrLn . extract $ parse parseDataDecl "" code
-  where code = "data Expr = Plus { l :: int, r :: int} | Times { l :: int, r :: int } | Inc { o :: int} | Dec {o :: int} "
-        extract (Right v) = show $ pretty v
-        extract (Left e) = show e
 
 instance Pretty Field where
   pretty (Field n t) = text t <+> text n <> semi
   
 instance Pretty Constructor where
   pretty (Constructor n fs) = 
-    text "struct" <+> bracesBlock fs <+> text n <> semi
+    text "struct" <+> bracesBlock fs <+> text ("" ++ n) <> semi
 
 instance Pretty DataDecl where
-  pretty d@(DataDecl n cs) = def <$> ctrs
+  pretty d@(DataDecl n cs) = def <$> vsep (constructorImpls d) <$> ctrs
     where def = text "struct" <+> text n <+> bracesBlock [e,u] <> semi
           e = text "enum" <+> bracesList tags <+> text "tag" <> semi
           tags = (text . ctorName) `fmap` cs
@@ -27,30 +23,40 @@ instance Pretty DataDecl where
           ctrs = text "static const struct" 
                  <+> bracesBlock (constructorSigs d)
                  <+> text n <+> equals
-                 <+> commaBraces (constructorImpls d)
+                 <+> commaBraces (constructorBindings d)
                  <> semi
+                 
+ctrFunctionName :: DataDecl -> Constructor -> Doc
+ctrFunctionName (DataDecl dn _) (Constructor cn _) = text $ dn ++ "__" ++ cn
 
 constructorSigs :: DataDecl -> [Doc]
 constructorSigs (DataDecl dn cs) = getSig `fmap` cs
   where getSig c@(Constructor cn fs) = 
-          text "struct" <+> text dn <+> (parens $ text "^" <> text cn)
+          text "struct" <+> text dn <+> (parens $ text "*" <> text cn)
           <> constructorParams c
           <> semi
 
+constructorBindings :: DataDecl -> [Doc]
+constructorBindings d@(DataDecl dn cs) = getBinding `fmap` cs
+  where getBinding c@(Constructor cn fs) = 
+          dot <> text cn <+> equals
+          <+> text "&" <> ctrFunctionName d c
+
 constructorImpls :: DataDecl -> [Doc]
-constructorImpls (DataDecl dn cs) = getImpl `fmap` cs
+constructorImpls d@(DataDecl dn cs) = getImpl `fmap` cs
   where getImpl c@(Constructor cn fs) = 
-          dot <> text cn <+> equals <+> text "^" <> constructorParams c
-          <> bracesBlock [body]
+          text "static inline struct" <+> text dn <+> ctrFunctionName d c
+          <> constructorParams c
+          <+> bracesBlock [body]
           where varName = text "x"
                 body = text "struct" <+> text dn <+> varName
                        <+> equals <+> braces (text cn) <> semi
                        <$> vsep (fieldAssign `fmap` fs)
                        <$> text "return" <+> varName <> semi
                 fieldAssign (Field n t) = 
-                  varName <> dot <> text cn <> dot <> text n
+                  varName <> dot <> text ("" ++ cn) <> dot <> text n
                   <+> equals <+> text n <> semi
-               
+
 
 constructorParams :: Constructor -> Doc
 constructorParams (Constructor _ fs) = tupled $ pretty' `fmap` fs
