@@ -20,7 +20,7 @@ instance Pretty DataDecl where
           tags = (text . ctorName) `fmap` cs
           u = text "union" <+> bracesBlock cs <> semi
           
-          ctrs = text "static const struct" 
+          ctrs = text "const struct" 
                  <+> bracesBlock (constructorSigs d)
                  <+> text n <+> equals
                  <+> commaBraces (constructorBindings d)
@@ -45,7 +45,7 @@ constructorBindings d@(DataDecl dn cs) = getBinding `fmap` cs
 constructorImpls :: DataDecl -> [Doc]
 constructorImpls d@(DataDecl dn cs) = getImpl `fmap` cs
   where getImpl c@(Constructor cn fs) = 
-          text "static inline struct" <+> text dn <+> ctrFunctionName d c
+          text "inline struct" <+> text dn <+> ctrFunctionName d c
           <> constructorParams c
           <+> bracesBlock [body]
           where varName = text "x"
