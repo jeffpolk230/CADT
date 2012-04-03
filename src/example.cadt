@@ -1,2 +1,2 @@
-data Expr = Plus { l :: int, r :: int }
-          | Inc { o :: int}
+data Expr = Plus { l : int, r : int }
+          | Inc { o : int}

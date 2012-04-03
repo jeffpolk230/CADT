@@ -29,7 +29,7 @@ data Field = Field { fieldName :: String
 
 parseField :: Parser Field
 parseField = Field <$> identifier <*> typename
-  where typename = reservedOp "::" *> identifier
+  where typename = reservedOp ":" *> identifier
 
 parseConstructor :: Parser Constructor
 parseConstructor = Constructor <$> identifier <*> fields
