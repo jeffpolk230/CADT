@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>CADT by jonsterling</title>
+    
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>CADT</h1>
+        <p>A preprocessor for algebraic data types in C, written in Haskell.</p>
+        <p class="view"><a href="https://github.com/jonsterling/CADT">View the Project on GitHub <small>jonsterling/CADT</small></a></p>
+        <ul>
+          <li><a href="https://github.com/jonsterling/CADT/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/jonsterling/CADT/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/jonsterling/CADT">Fork On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h3>I heard you liked ADTs, so I put some in your C.</h3>
+
+<p>CADT is a preprocessor for generating Haskell-like ADTs in C. For instance, this example ADT definition</p>
+
+<div class="highlight">
+<pre><span class="kr">data</span> <span class="kt">Expr</span> <span class="ow">=</span> <span class="kt">Plus</span> <span class="p">{</span> <span class="n">l</span> <span class="kt">:</span> <span class="n">int</span><span class="p">,</span> <span class="n">r</span> <span class="kt">:</span> <span class="n">int</span> <span class="p">}</span>
+          <span class="o">|</span> <span class="kt">Inc</span> <span class="p">{</span> <span class="n">o</span> <span class="kt">:</span> <span class="n">int</span> <span class="p">}</span>
+</pre>
+</div>
+
+
+<p>licenses the following C code:</p>
+
+<div class="highlight">
+<pre><span class="kt">int</span> <span class="nf">evaluate</span><span class="p">(</span><span class="k">struct</span> <span class="n">Expr</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">switch</span> <span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">tag</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="n">Plus</span>: <span class="k">return</span> <span class="n">e</span><span class="p">.</span><span class="n">Plus</span><span class="p">.</span><span class="n">l</span> <span class="o">+</span> <span class="n">e</span><span class="p">.</span><span class="n">Plus</span><span class="p">.</span><span class="n">r</span><span class="p">;</span>
+    <span class="k">case</span> <span class="n">Inc</span>:  <span class="k">return</span> <span class="n">e</span><span class="p">.</span><span class="n">Inc</span><span class="p">.</span><span class="n">o</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">test</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">struct</span> <span class="n">Expr</span> <span class="n">e1</span> <span class="o">=</span> <span class="n">Expr</span><span class="p">.</span><span class="n">Plus</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">);</span>
+  <span class="k">struct</span> <span class="n">Expr</span> <span class="n">e2</span> <span class="o">=</span> <span class="n">Expr</span><span class="p">.</span><span class="n">Inc</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+  <span class="n">assert</span><span class="p">(</span><span class="n">evaluate</span><span class="p">(</span><span class="n">e1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">);</span>
+  <span class="n">assert</span><span class="p">(</span><span class="n">evaluate</span><span class="p">(</span><span class="n">e2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">);</span>
+<span class="p">}</span>
+</pre>
+</div>
+
+
+<h4>Recursive types?</h4>
+
+<p>Recursive types are not currently possible with CADT; when I get around to it, they'll have to be implemented with pointers I suppose.</p>
+
+<h4>Pattern matching syntax</h4>
+
+<p>Patience, I'm working on it. I'm hoping for destructuring by constructor name (as in Haskell). This will eliminate the awkwardness of having to access the union members.</p>
+
+<h3>How this works</h3>
+
+<p>Basically, the above ADT definition compiles down to the following C:</p>
+
+<div class="highlight">
+<pre><span class="k">struct</span> <span class="n">Expr</span> <span class="p">{</span>
+  <span class="k">enum</span> <span class="p">{</span><span class="n">Plus</span><span class="p">,</span><span class="n">Inc</span><span class="p">}</span> <span class="n">tag</span><span class="p">;</span>
+  <span class="k">union</span> <span class="p">{</span>
+    <span class="k">struct</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">l</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">r</span><span class="p">;</span>
+    <span class="p">}</span> <span class="n">Plus</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">o</span><span class="p">;</span>
+    <span class="p">}</span> <span class="n">Inc</span><span class="p">;</span>
+  <span class="p">};</span>
+<span class="p">};</span>
+<span class="kr">inline</span> <span class="k">struct</span> <span class="n">Expr</span> <span class="nf">Expr__Plus</span><span class="p">(</span><span class="kt">int</span> <span class="n">l</span><span class="p">,</span><span class="kt">int</span> <span class="n">r</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">struct</span> <span class="n">Expr</span> <span class="n">x</span> <span class="o">=</span> <span class="p">{</span><span class="n">Plus</span><span class="p">};</span>
+  <span class="n">x</span><span class="p">.</span><span class="n">Plus</span><span class="p">.</span><span class="n">l</span> <span class="o">=</span> <span class="n">l</span><span class="p">;</span>
+  <span class="n">x</span><span class="p">.</span><span class="n">Plus</span><span class="p">.</span><span class="n">r</span> <span class="o">=</span> <span class="n">r</span><span class="p">;</span>
+  <span class="k">return</span> <span class="n">x</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="kr">inline</span> <span class="k">struct</span> <span class="n">Expr</span> <span class="nf">Expr__Inc</span><span class="p">(</span><span class="kt">int</span> <span class="n">o</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">struct</span> <span class="n">Expr</span> <span class="n">x</span> <span class="o">=</span> <span class="p">{</span><span class="n">Inc</span><span class="p">};</span>
+  <span class="n">x</span><span class="p">.</span><span class="n">Inc</span><span class="p">.</span><span class="n">o</span> <span class="o">=</span> <span class="n">o</span><span class="p">;</span>
+  <span class="k">return</span> <span class="n">x</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="k">const</span> <span class="k">struct</span> <span class="p">{</span>
+  <span class="k">struct</span> <span class="n">Expr</span> <span class="p">(</span><span class="o">*</span><span class="n">Plus</span><span class="p">)(</span><span class="kt">int</span> <span class="n">l</span><span class="p">,</span><span class="kt">int</span> <span class="n">r</span><span class="p">);</span>
+  <span class="k">struct</span> <span class="n">Expr</span> <span class="p">(</span><span class="o">*</span><span class="n">Inc</span><span class="p">)(</span><span class="kt">int</span> <span class="n">o</span><span class="p">);</span>
+<span class="p">}</span> <span class="n">Expr</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="p">.</span><span class="n">Plus</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">Expr__Plus</span><span class="p">,</span>
+  <span class="p">.</span><span class="n">Inc</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">Expr__Inc</span>
+<span class="p">};</span>
+</pre>
+</div>
+
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/jonsterling">jonsterling</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><!--<![endif]-->
+  </body>
+</html>
